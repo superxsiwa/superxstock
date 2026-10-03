@@ -1,0 +1,36 @@
+# Environments
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+.tox/
+nosetests.xml
+coverage.xml
+
+# Databases and Data
+*.sqlite3
+*.db
+pgdata/
+docker-data/
+redis-data/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Project Specific
+backend/celerybeat-schedule
+backend/*.log

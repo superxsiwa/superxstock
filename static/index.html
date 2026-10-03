@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperX Stock</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">S</div>
+          <div>
+            <h1>SuperX</h1>
+            <p>Stock Scanner</p>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active">Overview</button>
+          <button class="nav-item">Watchlist</button>
+          <button class="nav-item">Portfolio</button>
+          <button class="nav-item">Signals</button>
+        </nav>
+
+        <div class="mini-panel">
+          <p class="label">Market mood</p>
+          <h3 id="marketMood">Bullish</h3>
+          <span id="marketTrend">Trend improving</span>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Daily Opportunities</p>
+            <h2>Stock Opportunity Dashboard</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-btn">Export</button>
+            <button class="primary-btn">Refresh scan</button>
+          </div>
+        </header>
+
+        <section class="stats-grid">
+          <div class="stat-card">
+            <p>Buy setups</p>
+            <h3 id="buyCount">0</h3>
+          </div>
+          <div class="stat-card">
+            <p>Watchlist</p>
+            <h3 id="watchCount">0</h3>
+          </div>
+          <div class="stat-card">
+            <p>Portfolio value</p>
+            <h3 id="portfolioValue">0</h3>
+          </div>
+          <div class="stat-card">
+            <p>Cash</p>
+            <h3 id="portfolioCash">0</h3>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Selected stock</p>
+                <h3 id="chartTitle">Loading...</h3>
+              </div>
+              <div class="chip" id="chartSignal">-</div>
+            </div>
+            <svg id="chartSvg" viewBox="0 0 760 290" preserveAspectRatio="none"></svg>
+          </div>
+
+          <div class="panel trade-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Paper trade</p>
+                <h3>Execute</h3>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="tradeSymbol">Symbol</label>
+              <input id="tradeSymbol" type="text" value="AOT" />
+            </div>
+
+            <div class="form-row split">
+              <div>
+                <label for="tradeQty">Qty</label>
+                <input id="tradeQty" type="number" min="1" value="50" />
+              </div>
+              <div>
+                <label for="tradeAction">Action</label>
+                <select id="tradeAction">
+                  <option value="BUY">Buy</option>
+                  <option value="SELL">Sell</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="tradeBtn" class="primary-btn wide">Submit paper trade</button>
+            <div id="tradeMessage" class="trade-message"></div>
+          </div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Opportunity list</p>
+              <h3>Top setups</h3>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Price</th>
+                <th>RSI</th>
+                <th>MACD</th>
+                <th>EMA50</th>
+                <th>EMA90</th>
+                <th>Volume</th>
+                <th>Zone</th>
+                <th>Score</th>
+                <th>Rec</th>
+              </tr>
+            </thead>
+            <tbody id="scanTableBody"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

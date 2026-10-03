@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: superx_timescaledb
+    environment:
+      POSTGRES_USER: superx
+      POSTGRES_PASSWORD: superxpassword
+      POSTGRES_DB: superxstock
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: superx_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  timescaledb_data:
