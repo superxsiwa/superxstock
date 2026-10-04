@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+const storageKey = 'superx-session'
+const previousSession = sessionStorage.getItem(storageKey)
+
+if (!localStorage.getItem(storageKey) && previousSession) {
+  localStorage.setItem(storageKey, previousSession)
+}
+sessionStorage.removeItem(storageKey)
+
 export const useAppStore = create(persist((set) => ({
   accessToken: '',
   stocks: [],
@@ -16,7 +24,7 @@ export const useAppStore = create(persist((set) => ({
   setError: (error) => set({ error }),
   logout: () => set({ accessToken: '', portfolio: null }),
 }), {
-  name: 'superx-session',
-  storage: createJSONStorage(() => sessionStorage),
+  name: storageKey,
+  storage: createJSONStorage(() => localStorage),
   partialize: (state) => ({ accessToken: state.accessToken }),
 }))
