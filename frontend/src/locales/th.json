@@ -1,0 +1,122 @@
+{
+  "document": {
+    "title": "SuperX Stock | แดชบอร์ดโอกาสลงทุน"
+  },
+  "language": {
+    "label": "เลือกภาษา",
+    "thai": "ไทย",
+    "english": "English"
+  },
+  "brand": {
+    "tagline": "ข้อมูลตลาดหุ้น"
+  },
+  "navigation": {
+    "label": "เมนูหลัก",
+    "overview": "ภาพรวม",
+    "opportunities": "โอกาสลงทุน",
+    "portfolio": "พอร์ตลงทุน"
+  },
+  "session": {
+    "label": "สถานะบัญชี",
+    "authenticated": "เข้าสู่ระบบแล้ว",
+    "guest": "ใช้งานแบบผู้เยี่ยมชม"
+  },
+  "header": {
+    "eyebrow": "ภาพรวมตลาดหุ้นไทย",
+    "title": "ภาพรวมโอกาสลงทุน",
+    "marketClose": "SET | ปิดตลาด"
+  },
+  "actions": {
+    "signIn": "เข้าสู่ระบบ",
+    "signOut": "ออกจากระบบ",
+    "refresh": "สแกนหุ้นอีกครั้ง",
+    "refreshing": "กำลังสแกน...",
+    "close": "ปิด"
+  },
+  "market": {
+    "summary": "สรุปภาพรวมตลาด",
+    "daily": "รายวัน",
+    "buySetups": "สัญญาณซื้อ",
+    "buySetupsHint": "จากหุ้นที่ติดตาม",
+    "watchlist": "หุ้นที่ติดตาม",
+    "watchlistHint": "หุ้นไทยที่สแกนแล้ว",
+    "portfolioValue": "มูลค่าพอร์ต",
+    "accountValue": "มูลค่าบัญชี",
+    "signInToView": "เข้าสู่ระบบเพื่อดูข้อมูล",
+    "availableCash": "เงินสดคงเหลือ",
+    "paperBalance": "ยอดเงินสำหรับทดลองซื้อขาย",
+    "accountBalance": "ยอดเงินในบัญชี"
+  },
+  "chart": {
+    "eyebrow": "ประวัติราคา",
+    "selectSymbol": "เลือกหุ้น",
+    "empty": "เลือกหุ้นจากรายการเพื่อดูประวัติราคา",
+    "period": "90 วันทำการ",
+    "latestClose": "ราคาปิดล่าสุด {{price}}",
+    "noData": "ไม่มีข้อมูลราคา"
+  },
+  "trade": {
+    "eyebrow": "จำลองการลงทุน",
+    "title": "ทดลองซื้อขาย",
+    "symbol": "ชื่อย่อหุ้น",
+    "quantity": "จำนวนหุ้น",
+    "side": "คำสั่งซื้อขาย",
+    "buy": "ซื้อ",
+    "sell": "ขาย",
+    "submit": "ส่งคำสั่งซื้อขาย",
+    "signInToTrade": "เข้าสู่ระบบเพื่อซื้อขาย",
+    "success": "ส่งคำสั่ง{{action}} {{quantity}} หุ้น {{symbol}} แล้ว"
+  },
+  "opportunities": {
+    "eyebrow": "ผลสแกนประจำวัน",
+    "title": "หุ้นที่น่าสนใจ",
+    "count_one": "{{count}} หุ้น",
+    "count_other": "{{count}} หุ้น",
+    "empty": "ยังไม่มีผลการสแกน"
+  },
+  "table": {
+    "symbol": "ชื่อย่อหุ้น",
+    "price": "ราคาปัจจุบัน",
+    "rsi": "RSI",
+    "macd": "MACD",
+    "ema50": "EMA 50",
+    "ema90": "EMA 90",
+    "volume": "ปริมาณซื้อขาย",
+    "zone": "แนวโน้ม",
+    "score": "คะแนน",
+    "signal": "สัญญาณ"
+  },
+  "signals": {
+    "BUY": "ซื้อ",
+    "SELL": "ขาย",
+    "WATCH": "ติดตาม"
+  },
+  "zones": {
+    "Bullish Breakout": "แนวโน้มขาขึ้น",
+    "Bearish Momentum": "แรงขายขาลง",
+    "Trend Support": "แนวรับตามแนวโน้ม",
+    "Neutral": "เป็นกลาง"
+  },
+  "auth": {
+    "eyebrow": "บัญชี SuperX",
+    "signIn": "เข้าสู่ระบบ",
+    "createAccount": "สร้างบัญชี",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "register": "สมัครสมาชิก",
+    "createAccountAction": "สร้างบัญชีใหม่",
+    "backToSignIn": "กลับไปเข้าสู่ระบบ",
+    "accountCreated": "สร้างบัญชีแล้ว เข้าสู่ระบบเพื่อดำเนินการต่อ"
+  },
+  "errors": {
+    "invalidCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "emailRegistered": "อีเมลนี้ลงทะเบียนไว้แล้ว",
+    "insufficientCash": "เงินสดคงเหลือไม่เพียงพอสำหรับคำสั่งนี้",
+    "insufficientShares": "จำนวนหุ้นที่ต้องการขายมีไม่เพียงพอ",
+    "unsupportedAction": "ไม่รองรับคำสั่งซื้อขายนี้",
+    "symbolNotFound": "ไม่พบหุ้น {{symbol}}",
+    "invalidInput": "โปรดตรวจสอบข้อมูลที่กรอกแล้วลองอีกครั้ง",
+    "network": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
+    "generic": "เกิดข้อผิดพลาด โปรดลองอีกครั้ง"
+  }
+}

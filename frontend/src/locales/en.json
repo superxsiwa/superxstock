@@ -1,0 +1,122 @@
+{
+  "document": {
+    "title": "SuperX Stock | Opportunity Desk"
+  },
+  "language": {
+    "label": "Language",
+    "thai": "ไทย",
+    "english": "English"
+  },
+  "brand": {
+    "tagline": "MARKET DESK"
+  },
+  "navigation": {
+    "label": "Main navigation",
+    "overview": "Overview",
+    "opportunities": "Opportunities",
+    "portfolio": "Portfolio"
+  },
+  "session": {
+    "label": "Session",
+    "authenticated": "Authenticated",
+    "guest": "Guest access"
+  },
+  "header": {
+    "eyebrow": "Market overview / Thailand",
+    "title": "Opportunity desk",
+    "marketClose": "SET | END OF DAY"
+  },
+  "actions": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "refresh": "Refresh scan",
+    "refreshing": "Refreshing...",
+    "close": "Close"
+  },
+  "market": {
+    "summary": "Market summary",
+    "daily": "DAILY",
+    "buySetups": "BUY SETUPS",
+    "buySetupsHint": "Across tracked symbols",
+    "watchlist": "WATCHLIST",
+    "watchlistHint": "Thai equities scanned",
+    "portfolioValue": "PORTFOLIO VALUE",
+    "accountValue": "Account value",
+    "signInToView": "Sign in to view",
+    "availableCash": "AVAILABLE CASH",
+    "paperBalance": "Paper trading balance",
+    "accountBalance": "Account balance"
+  },
+  "chart": {
+    "eyebrow": "Price history",
+    "selectSymbol": "Select a symbol",
+    "empty": "Select a scanned symbol to view its price history.",
+    "period": "90 trading days",
+    "latestClose": "Latest close {{price}}",
+    "noData": "No price data"
+  },
+  "trade": {
+    "eyebrow": "Simulation",
+    "title": "Paper trade",
+    "symbol": "Symbol",
+    "quantity": "Quantity",
+    "side": "Side",
+    "buy": "Buy",
+    "sell": "Sell",
+    "submit": "Submit order",
+    "signInToTrade": "Sign in to trade",
+    "success": "{{action}} {{quantity}} {{symbol}} order submitted."
+  },
+  "opportunities": {
+    "eyebrow": "Daily scan",
+    "title": "Top opportunities",
+    "count_one": "{{count}} SYMBOL",
+    "count_other": "{{count}} SYMBOLS",
+    "empty": "No scan results are available."
+  },
+  "table": {
+    "symbol": "Symbol",
+    "price": "Price",
+    "rsi": "RSI",
+    "macd": "MACD",
+    "ema50": "EMA 50",
+    "ema90": "EMA 90",
+    "volume": "Volume",
+    "zone": "Zone",
+    "score": "Score",
+    "signal": "Signal"
+  },
+  "signals": {
+    "BUY": "BUY",
+    "SELL": "SELL",
+    "WATCH": "WATCH"
+  },
+  "zones": {
+    "Bullish Breakout": "Bullish Breakout",
+    "Bearish Momentum": "Bearish Momentum",
+    "Trend Support": "Trend Support",
+    "Neutral": "Neutral"
+  },
+  "auth": {
+    "eyebrow": "SuperX account",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "register": "Register",
+    "createAccountAction": "Create an account",
+    "backToSignIn": "Back to sign in",
+    "accountCreated": "Account created. Sign in to continue."
+  },
+  "errors": {
+    "invalidCredentials": "Incorrect email or password.",
+    "emailRegistered": "This email is already registered.",
+    "insufficientCash": "There is not enough cash for this order.",
+    "insufficientShares": "There are not enough shares to sell.",
+    "unsupportedAction": "This order action is not supported.",
+    "symbolNotFound": "Symbol {{symbol}} was not found.",
+    "invalidInput": "Check the information entered and try again.",
+    "network": "Unable to connect to the server. Check your connection and try again.",
+    "generic": "Something went wrong. Please try again."
+  }
+}
