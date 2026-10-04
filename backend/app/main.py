@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
@@ -16,18 +18,29 @@ app = FastAPI(
 )
 
 # Register API Routers
-from app.api.routes import frontend, auth
+from app.api.routes import frontend, auth, market_stream
 app.include_router(auth.router)
 app.include_router(frontend.router)
+app.include_router(market_stream.router)
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+STATIC_DIR = PROJECT_ROOT / "static"
+
+if (FRONTEND_DIST / "assets").is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
 @app.get("/")
 def read_root():
-    return FileResponse("../static/index.html")
+    frontend_index = FRONTEND_DIST / "index.html"
+    if frontend_index.is_file():
+        return FileResponse(frontend_index)
+    return FileResponse(STATIC_DIR / "index.html")
 
-app.mount("/static", StaticFiles(directory="../static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/db-test")
 def test_db_connection(db: Session = Depends(get_db)):

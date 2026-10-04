@@ -12,6 +12,7 @@ celery_app = Celery(
     broker=f"{redis_url}/0",
     backend=f"{redis_url}/1"
 )
+celery_app.conf.timezone = os.environ.get("CELERY_TIMEZONE", "Asia/Bangkok")
 
 from celery.schedules import crontab
 

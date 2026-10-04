@@ -1,13 +1,12 @@
-import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
+from app.data import get_market_data_provider
 
 def fetch_and_analyze(symbol: str, period: str = "1y") -> pd.DataFrame:
     """
     Fetch OHLCV data and calculate technical indicators.
     """
-    ticker = yf.Ticker(symbol)
-    df = ticker.history(period=period)
+    df = get_market_data_provider().fetch_ohlcv(symbol, period=period)
     
     if df.empty:
         return None

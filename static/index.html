@@ -40,6 +40,8 @@
           <div class="topbar-actions">
             <button class="ghost-btn">Export</button>
             <button class="primary-btn">Refresh scan</button>
+            <button id="authButton" class="ghost-btn" type="button">Sign in</button>
+            <button id="logoutButton" class="ghost-btn" type="button" hidden>Sign out</button>
           </div>
         </header>
 
@@ -134,6 +136,23 @@
         </section>
       </main>
     </div>
+
+    <dialog id="authDialog" class="auth-dialog" aria-labelledby="authTitle">
+      <form id="authForm" class="auth-form">
+        <p class="eyebrow">SuperX account</p>
+        <h2 id="authTitle">Sign in</h2>
+        <label for="authEmail">Email</label>
+        <input id="authEmail" name="email" type="email" autocomplete="email" required />
+        <label for="authPassword">Password</label>
+        <input id="authPassword" name="password" type="password" autocomplete="current-password" required />
+        <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+        <div class="auth-actions">
+          <button id="authSubmit" class="primary-btn" type="submit">Sign in</button>
+          <button id="authModeButton" class="ghost-btn" type="button">Create account</button>
+          <button id="authCancelButton" class="ghost-btn" type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/static/app.js"></script>
   </body>

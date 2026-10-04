@@ -20,11 +20,59 @@ const el = {
   tradeAction: document.getElementById('tradeAction'),
   tradeQty: document.getElementById('tradeQty'),
   chartSvg: document.getElementById('chartSvg'),
+  authButton: document.getElementById('authButton'),
+  logoutButton: document.getElementById('logoutButton'),
+  authDialog: document.getElementById('authDialog'),
+  authForm: document.getElementById('authForm'),
+  authEmail: document.getElementById('authEmail'),
+  authPassword: document.getElementById('authPassword'),
+  authTitle: document.getElementById('authTitle'),
+  authMessage: document.getElementById('authMessage'),
+  authSubmit: document.getElementById('authSubmit'),
+  authModeButton: document.getElementById('authModeButton'),
+  authCancelButton: document.getElementById('authCancelButton'),
 };
 
+let isRegisterMode = false;
+
+function getAccessToken() {
+  return sessionStorage.getItem('access_token');
+}
+
+function openAuthDialog(message = '') {
+  el.authMessage.textContent = message;
+  if (!el.authDialog.open) el.authDialog.showModal();
+}
+
+function updateAuthUI() {
+  const isSignedIn = Boolean(getAccessToken());
+  el.authButton.hidden = isSignedIn;
+  el.logoutButton.hidden = !isSignedIn;
+}
+
+function logout(message = '') {
+  sessionStorage.removeItem('access_token');
+  updateAuthUI();
+  openAuthDialog(message);
+}
+
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
-  const json = await response.json();
+  const headers = new Headers(options.headers || {});
+  const token = getAccessToken();
+  if (options.body instanceof URLSearchParams) {
+    headers.set('Content-Type', 'application/x-www-form-urlencoded');
+  } else if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token && !url.startsWith('/api/auth/')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  const json = await response.json().catch(() => ({}));
+  if (response.status === 401 && !url.startsWith('/api/auth/')) {
+    logout('Your session expired. Please sign in again.');
+  }
   if (!response.ok) {
     throw new Error(json.detail || 'Request failed');
   }
@@ -159,10 +207,72 @@ async function handleTrade() {
   }
 }
 
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+  el.authMessage.textContent = '';
+  el.authSubmit.disabled = true;
+
+  const email = el.authEmail.value.trim();
+  const password = el.authPassword.value;
+  try {
+    if (isRegisterMode) {
+      await fetchJson('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      isRegisterMode = false;
+      el.authTitle.textContent = 'Sign in';
+      el.authSubmit.textContent = 'Sign in';
+      el.authModeButton.textContent = 'Create account';
+      el.authPassword.autocomplete = 'current-password';
+      el.authMessage.textContent = 'Account created. Sign in to continue.';
+      el.authPassword.value = '';
+      return;
+    }
+
+    const result = await fetchJson('/api/auth/token', {
+      method: 'POST',
+      body: new URLSearchParams({ username: email, password }),
+    });
+    sessionStorage.setItem('access_token', result.access_token);
+    updateAuthUI();
+    el.authDialog.close();
+    await loadPortfolio();
+  } catch (error) {
+    el.authMessage.textContent = error.message;
+  } finally {
+    el.authSubmit.disabled = false;
+  }
+}
+
 el.tradeBtn.addEventListener('click', handleTrade);
 document.querySelector('.primary-btn').addEventListener('click', refreshScan);
+el.authButton.addEventListener('click', () => {
+  isRegisterMode = false;
+  el.authTitle.textContent = 'Sign in';
+  el.authSubmit.textContent = 'Sign in';
+  el.authModeButton.textContent = 'Create account';
+  el.authPassword.autocomplete = 'current-password';
+  openAuthDialog();
+});
+el.logoutButton.addEventListener('click', () => logout('You have signed out.'));
+el.authModeButton.addEventListener('click', () => {
+  isRegisterMode = !isRegisterMode;
+  el.authTitle.textContent = isRegisterMode ? 'Create account' : 'Sign in';
+  el.authSubmit.textContent = isRegisterMode ? 'Register' : 'Sign in';
+  el.authModeButton.textContent = isRegisterMode ? 'Back to sign in' : 'Create account';
+  el.authPassword.autocomplete = isRegisterMode ? 'new-password' : 'current-password';
+  el.authMessage.textContent = '';
+});
+el.authCancelButton.addEventListener('click', () => el.authDialog.close());
+el.authForm.addEventListener('submit', handleAuthSubmit);
 
 (async function init() {
+  updateAuthUI();
   await refreshScan();
-  await loadPortfolio();
+  if (getAccessToken()) {
+    await loadPortfolio();
+  } else {
+    openAuthDialog('Sign in to view your portfolio and paper trade.');
+  }
 })();
