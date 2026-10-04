@@ -2,8 +2,10 @@ import os
 import json
 import redis
 from celery import Celery
-from app.data import fetch_real_market_data, THAI_SYMBOLS
+from app.data import fetch_real_market_data
 from app.services import generate_signal_for_symbol
+from app.core.database import SessionLocal
+from app.models.all_models import Stock
 
 redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
 
@@ -29,7 +31,14 @@ celery_app.conf.beat_schedule = {
 def fetch_and_scan_daily_market():
     scan_results = []
     
-    for sym in THAI_SYMBOLS:
+    db = SessionLocal()
+    try:
+        active_stocks = db.query(Stock).filter(Stock.is_active == True).all()
+        symbols = [s.symbol for s in active_stocks]
+    finally:
+        db.close()
+        
+    for sym in symbols:
         history = fetch_real_market_data(sym)
         if not history:
             continue

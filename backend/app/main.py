@@ -11,6 +11,21 @@ from app.models import all_models
 # Create tables in the database (For MVP - usually done via Alembic)
 Base.metadata.create_all(bind=engine)
 
+# Seed default stocks if empty
+from app.core.database import SessionLocal
+def seed_default_stocks():
+    db = SessionLocal()
+    try:
+        from app.models.all_models import Stock
+        if db.query(Stock).count() == 0:
+            THAI_SYMBOLS = ["AOT.BK", "ADVANC.BK", "BDMS.BK", "CPALL.BK", "DELTA.BK", "KBANK.BK", "PTT.BK", "PTTEP.BK", "SCB.BK", "TRUE.BK"]
+            for sym in THAI_SYMBOLS:
+                db.add(Stock(symbol=sym, name=sym, is_active=True))
+            db.commit()
+    finally:
+        db.close()
+seed_default_stocks()
+
 app = FastAPI(
     title="SuperX Stock Screener & Paper Trading API",
     description="MVP Backend for stock analysis and paper trading.",
@@ -18,10 +33,11 @@ app = FastAPI(
 )
 
 # Register API Routers
-from app.api.routes import frontend, auth, market_stream
+from app.api.routes import frontend, auth, market_stream, stocks
 app.include_router(auth.router)
 app.include_router(frontend.router)
 app.include_router(market_stream.router)
+app.include_router(stocks.router)
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse

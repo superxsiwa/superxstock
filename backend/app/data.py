@@ -6,7 +6,6 @@ from typing import Protocol
 
 import pandas as pd
 
-THAI_SYMBOLS = ["AOT.BK", "ADVANC.BK", "BDMS.BK", "CPALL.BK", "DELTA.BK", "KBANK.BK", "PTT.BK", "PTTEP.BK", "SCB.BK", "TRUE.BK"]
 
 
 class MarketDataProvider(Protocol):
@@ -86,8 +85,18 @@ def fetch_real_market_data(symbol: str, days: int = 90) -> list[dict]:
 
 
 def get_market_data():
+    from app.core.database import SessionLocal
+    from app.models.all_models import Stock
+
+    db = SessionLocal()
+    try:
+        active_stocks = db.query(Stock).filter(Stock.is_active == True).all()
+        symbols = [s.symbol for s in active_stocks]
+    finally:
+        db.close()
+
     market = {}
-    for sym in THAI_SYMBOLS:
+    for sym in symbols:
         history = fetch_real_market_data(sym)
         if not history:
             continue

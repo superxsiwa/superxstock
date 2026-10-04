@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.security import decode_access_token
-from app.data import THAI_SYMBOLS, get_market_data_provider
-from app.models.all_models import User
+from app.data import get_market_data_provider
+from app.models.all_models import User, Stock
 
 router = APIRouter(tags=["Market Stream"])
 logger = logging.getLogger(__name__)
@@ -39,6 +39,13 @@ publisher_task: asyncio.Task | None = None
 
 
 def fetch_current_prices() -> list[dict[str, float | str]]:
+    db = SessionLocal()
+    try:
+        active_stocks = db.query(Stock).filter(Stock.is_active == True).all()
+        symbols = [s.symbol for s in active_stocks]
+    finally:
+        db.close()
+
     try:
         provider = get_market_data_provider()
     except Exception:
@@ -46,7 +53,7 @@ def fetch_current_prices() -> list[dict[str, float | str]]:
         return []
 
     prices = []
-    for symbol in THAI_SYMBOLS:
+    for symbol in symbols:
         try:
             price = provider.get_current_price(symbol)
         except Exception:

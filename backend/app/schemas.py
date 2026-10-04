@@ -30,3 +30,17 @@ class StockSignal(BaseModel):
     recommendation: str
     score: int
     confidence: int
+
+class StockCreate(BaseModel):
+    symbol: str = Field(..., min_length=2, max_length=20)
+    name: Optional[str] = None
+    is_active: bool = True
+
+class StockResponse(BaseModel):
+    id: int
+    symbol: str
+    name: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True

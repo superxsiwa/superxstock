@@ -33,6 +33,7 @@ function App() {
   const setPortfolio = useAppStore((state) => state.setPortfolio)
   const setSelectedSymbol = useAppStore((state) => state.setSelectedSymbol)
   const setAuthOpen = useAppStore((state) => state.setAuthOpen)
+  const setManageStocksOpen = useAppStore((state) => state.setManageStocksOpen)
   const setError = useAppStore((state) => state.setError)
   const setAccessToken = useAppStore((state) => state.setAccessToken)
   const logout = useAppStore((state) => state.logout)
@@ -44,6 +45,59 @@ function App() {
   const [quantity, setQuantity] = useState('50')
   const [action, setAction] = useState('BUY')
   const [tradeSymbol, setTradeSymbol] = useState('AOT')
+  
+  const manageStocksOpen = useAppStore((state) => state.manageStocksOpen)
+  const [rawStocks, setRawStocks] = useState([])
+  const [newStockSymbol, setNewStockSymbol] = useState('')
+  const [stockMessage, setStockMessage] = useState('')
+
+  async function fetchRawStocks() {
+    try {
+      const res = await apiRequest('/api/stocks')
+      setRawStocks(res)
+    } catch (e) {
+      setStockMessage(e.message)
+    }
+  }
+
+  useEffect(() => {
+    if (manageStocksOpen) {
+      fetchRawStocks()
+    }
+  }, [manageStocksOpen])
+
+  async function submitAddStock(e) {
+    e.preventDefault()
+    setBusy(true)
+    setStockMessage('')
+    try {
+      await apiRequest('/api/stocks/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: newStockSymbol })
+      })
+      setNewStockSymbol('')
+      await fetchRawStocks()
+    } catch (err) {
+      setStockMessage(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function deleteStock(id) {
+    if (!window.confirm("Are you sure?")) return
+    setBusy(true)
+    setStockMessage('')
+    try {
+      await apiRequest(`/api/stocks/${id}`, { method: 'DELETE' })
+      await fetchRawStocks()
+    } catch (err) {
+      setStockMessage(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -208,7 +262,10 @@ function App() {
               <button aria-pressed={i18n.language === 'en'} className={i18n.language === 'en' ? 'language-button active' : 'language-button'} onClick={() => i18n.changeLanguage('en')} type="button">{t('language.english')}</button>
             </div>
             {accessToken ? (
-              <button className="button button-quiet" onClick={logout} type="button">{t('actions.signOut')}</button>
+              <>
+                <button className="button button-quiet" onClick={() => setManageStocksOpen(true)} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
+                <button className="button button-quiet" onClick={logout} type="button">{t('actions.signOut')}</button>
+              </>
             ) : (
               <button className="button button-quiet" onClick={() => setAuthOpen(true)} type="button">{t('actions.signIn')}</button>
             )}
@@ -283,6 +340,35 @@ function App() {
             <div className="dialog-actions">
               <button className="text-button" onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthMessage('') }} type="button">{authMode === 'login' ? t('auth.createAccountAction') : t('auth.backToSignIn')}</button>
               <button className="text-button" onClick={() => setAuthOpen(false)} type="button">{t('actions.close')}</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {manageStocksOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section aria-labelledby="manage-stocks-title" aria-modal="true" className="auth-dialog" role="dialog" style={{ maxWidth: '500px' }}>
+            <p className="eyebrow">Settings</p><h2 id="manage-stocks-title">Manage Stocks</h2>
+            <form className="trade-form" onSubmit={submitAddStock} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <input maxLength="15" onChange={(e) => setNewStockSymbol(e.target.value)} value={newStockSymbol} required placeholder="e.g. GULF.BK" style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
+              <button className="button button-primary" disabled={busy} type="submit">Add</button>
+            </form>
+            <p className="form-message" role="status" style={{ color: stockMessage.includes('Cannot') ? 'red' : 'inherit' }}>{stockMessage}</p>
+            <div className="table-scroll" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead><tr><th style={{ paddingBottom: '8px', borderBottom: '1px solid #eee' }}>Symbol</th><th style={{ paddingBottom: '8px', borderBottom: '1px solid #eee', textAlign: 'right' }}>Action</th></tr></thead>
+                <tbody>
+                  {rawStocks.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ padding: '8px 0', borderBottom: '1px solid #eee' }}><strong>{s.symbol}</strong></td>
+                      <td style={{ padding: '8px 0', borderBottom: '1px solid #eee', textAlign: 'right' }}><button className="text-button" onClick={() => deleteStock(s.id)} type="button" style={{ color: 'red', cursor: 'pointer', background: 'none', border: 'none' }}>Delete</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="dialog-actions" style={{ marginTop: '16px' }}>
+              <button className="button button-quiet" onClick={() => setManageStocksOpen(false)} type="button">{t('actions.close')}</button>
             </div>
           </section>
         </div>
