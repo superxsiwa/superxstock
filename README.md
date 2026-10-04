@@ -35,7 +35,7 @@ Then open:
 - http://localhost:8000/
 
 ## Run with Docker Compose
-Docker Compose automatically loads variables from the repository-root `.env` file. It starts the API, Celery worker, and Celery Beat after TimescaleDB and Redis are healthy.
+Docker Compose automatically loads variables from the repository-root `.env` file. Set `DATA_PROVIDER=YAHOO` there to select the provider; YAHOO is currently the implemented provider. Compose defaults to YAHOO when the variable is omitted. It starts the API, Celery worker, and Celery Beat after TimescaleDB and Redis are healthy.
 
 ```bash
 docker compose up --build

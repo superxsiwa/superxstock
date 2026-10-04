@@ -41,6 +41,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://superx:superxpassword@timescaledb:5432/superxstock}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      DATA_PROVIDER: ${DATA_PROVIDER:-YAHOO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY to a value with at least 32 characters}
     depends_on:
       timescaledb:
@@ -57,6 +58,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://superx:superxpassword@timescaledb:5432/superxstock}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      DATA_PROVIDER: ${DATA_PROVIDER:-YAHOO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY to a value with at least 32 characters}
       CELERY_TIMEZONE: Asia/Bangkok
     depends_on:
@@ -74,6 +76,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://superx:superxpassword@timescaledb:5432/superxstock}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      DATA_PROVIDER: ${DATA_PROVIDER:-YAHOO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY to a value with at least 32 characters}
       CELERY_TIMEZONE: Asia/Bangkok
     depends_on:
