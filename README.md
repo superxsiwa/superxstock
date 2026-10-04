@@ -8,13 +8,26 @@ A technical-analysis stock screening and paper trading MVP designed for daily st
 - Paper trading portfolio simulation
 - Basic trading-view-style dashboard layout
 
+## Persistent configuration
+
+Create a repository-root `.env` file once. Keep it across restarts: changing or losing this key invalidates existing JWTs. The file is ignored by Git and should not be committed.
+
+```bash
+if [ ! -f .env ]; then
+	printf 'SECRET_KEY=%s\n' "$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" > .env
+	chmod 600 .env
+fi
+```
+
 ## Run locally
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
-export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+set -a
+. ./.env
+set +a
 uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -22,10 +35,9 @@ Then open:
 - http://localhost:8000/
 
 ## Run with Docker Compose
-Set a stable JWT signing key before starting the services. Compose starts the API, Celery worker, and Celery Beat after TimescaleDB and Redis are healthy.
+Docker Compose automatically loads variables from the repository-root `.env` file. It starts the API, Celery worker, and Celery Beat after TimescaleDB and Redis are healthy.
 
 ```bash
-export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 docker compose up --build
 ```
 
