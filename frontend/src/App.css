@@ -59,6 +59,15 @@
   text-decoration: none;
 }
 
+.nav-action {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
 .nav-item:hover,
 .nav-item.active {
   background: #2a3a33;
@@ -264,7 +273,8 @@
 
 .chart-panel,
 .trade-panel,
-.table-panel {
+.table-panel,
+.backtest-panel {
   padding: 18px;
 }
 
@@ -330,7 +340,8 @@
 }
 
 .trade-form label,
-.auth-form label {
+.auth-form label,
+.feature-form label {
   display: grid;
   gap: 6px;
   color: #667169;
@@ -340,7 +351,8 @@
 
 .trade-form input,
 .trade-form select,
-.auth-form input {
+.auth-form input,
+.feature-form input {
   width: 100%;
   min-height: 38px;
   padding: 8px 10px;
@@ -371,6 +383,33 @@
 
 .table-panel {
   margin-top: 16px;
+}
+
+.backtest-panel {
+  margin-top: 16px;
+}
+
+.backtest-metrics {
+  margin-bottom: 18px;
+  border: 0;
+  border-bottom: 1px solid #e7ebe8;
+  border-radius: 0;
+  background: transparent;
+}
+
+.backtest-chart {
+  height: 240px;
+  margin: 12px 0 24px;
+}
+
+.backtest-tables {
+  display: grid;
+  gap: 22px;
+}
+
+.backtest-tables h3 {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .table-heading {
@@ -463,6 +502,53 @@ tbody tr.selected-row {
   font-size: 1.3rem;
 }
 
+.config-dialog {
+  width: min(100%, 440px);
+}
+
+.feature-dialog {
+  width: min(100%, 600px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.config-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.feature-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.watchlist-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.watchlist-form .button {
+  min-height: 38px;
+}
+
+.feature-table {
+  max-height: 320px;
+  margin: 8px 0 14px;
+  overflow-y: auto;
+}
+
+.alert-form {
+  margin-bottom: 12px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .dialog-actions {
   gap: 12px;
   margin-top: 12px;
@@ -518,6 +604,10 @@ tbody tr.selected-row {
     padding: 8px 10px;
   }
 
+  .nav-action {
+    width: max-content;
+  }
+
   .sidebar-status,
   .sidebar-bottom {
     display: none;
@@ -549,6 +639,18 @@ tbody tr.selected-row {
 
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .backtest-metrics .metric:nth-child(2) {
+    border-right: 0;
+  }
+
+  .backtest-metrics .metric:nth-child(-n + 2) {
+    border-bottom: 1px solid #e7ebe8;
+  }
+
+  .backtest-metrics .metric:nth-child(3) {
+    border-right: 1px solid #e7ebe8;
   }
 
   .metric:nth-child(2) {

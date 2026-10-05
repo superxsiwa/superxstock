@@ -24,6 +24,7 @@ function App() {
     maximumFractionDigits: 2,
   })
   const accessToken = useAppStore((state) => state.accessToken)
+  const userRole = useAppStore((state) => state.userRole)
   const stocks = useAppStore((state) => state.stocks)
   const portfolio = useAppStore((state) => state.portfolio)
   const selectedSymbol = useAppStore((state) => state.selectedSymbol)
@@ -36,6 +37,7 @@ function App() {
   const setManageStocksOpen = useAppStore((state) => state.setManageStocksOpen)
   const setError = useAppStore((state) => state.setError)
   const setAccessToken = useAppStore((state) => state.setAccessToken)
+  const setUserRole = useAppStore((state) => state.setUserRole)
   const logout = useAppStore((state) => state.logout)
   const [candles, setCandles] = useState([])
   const [authMode, setAuthMode] = useState('login')
@@ -47,9 +49,27 @@ function App() {
   const [tradeSymbol, setTradeSymbol] = useState('AOT')
   
   const manageStocksOpen = useAppStore((state) => state.manageStocksOpen)
+  const isAdmin = userRole === 'admin'
   const [rawStocks, setRawStocks] = useState([])
   const [newStockSymbol, setNewStockSymbol] = useState('')
   const [stockMessage, setStockMessage] = useState('')
+  const [configOpen, setConfigOpen] = useState(false)
+  const [maxStocks, setMaxStocks] = useState('')
+  const [configMessage, setConfigMessage] = useState('')
+  const [configBusy, setConfigBusy] = useState(false)
+  const [watchlistOpen, setWatchlistOpen] = useState(false)
+  const [watchlistSymbols, setWatchlistSymbols] = useState([])
+  const [watchlistInput, setWatchlistInput] = useState('')
+  const [watchlistMessage, setWatchlistMessage] = useState('')
+  const [watchlistBusy, setWatchlistBusy] = useState(false)
+  const [alertsOpen, setAlertsOpen] = useState(false)
+  const [lineUserId, setLineUserId] = useState('')
+  const [lineChannelAccessToken, setLineChannelAccessToken] = useState('')
+  const [lineConfigured, setLineConfigured] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [notificationBusy, setNotificationBusy] = useState(false)
+  const [signalAnalytics, setSignalAnalytics] = useState(null)
+  const [signalAnalyticsError, setSignalAnalyticsError] = useState('')
 
   async function fetchRawStocks() {
     try {
@@ -61,10 +81,168 @@ function App() {
   }
 
   useEffect(() => {
-    if (manageStocksOpen) {
-      fetchRawStocks()
-    }
+    if (!manageStocksOpen) return undefined
+    let active = true
+    apiRequest('/api/stocks')
+      .then((result) => {
+        if (active) setRawStocks(result)
+      })
+      .catch((requestError) => {
+        if (active) setStockMessage(requestError.message)
+      })
+    return () => { active = false }
   }, [manageStocksOpen])
+
+  useEffect(() => {
+    if (!configOpen) return undefined
+    let active = true
+    apiRequest('/api/config')
+      .then((result) => {
+        if (active) {
+          setMaxStocks(String(result.MAX_STOCKS ?? ''))
+          setConfigMessage('')
+        }
+      })
+      .catch((requestError) => {
+        if (active) setConfigMessage(requestError.message)
+      })
+    return () => { active = false }
+  }, [configOpen])
+
+  useEffect(() => {
+    if (!watchlistOpen) return undefined
+    let active = true
+    apiRequest('/api/watchlist')
+      .then((result) => {
+        if (active) {
+          setWatchlistSymbols(result)
+          setWatchlistMessage('')
+        }
+      })
+      .catch((requestError) => {
+        if (active) setWatchlistMessage(requestError.message)
+      })
+    return () => { active = false }
+  }, [watchlistOpen])
+
+  useEffect(() => {
+    if (!alertsOpen) return undefined
+    let active = true
+    apiRequest('/api/notifications/settings')
+      .then((result) => {
+        if (active) {
+          setLineUserId(result.line_user_id || '')
+          setLineConfigured(result.configured)
+          setLineChannelAccessToken('')
+          setNotificationMessage('')
+        }
+      })
+      .catch((requestError) => {
+        if (active) setNotificationMessage(requestError.message)
+      })
+    return () => { active = false }
+  }, [alertsOpen])
+
+  async function addWatchlistSymbol(event) {
+    event.preventDefault()
+    setWatchlistBusy(true)
+    setWatchlistMessage('')
+    try {
+      const result = await apiRequest('/api/watchlist', {
+        method: 'POST',
+        body: JSON.stringify({ symbol: watchlistInput.trim().toUpperCase() }),
+      })
+      setWatchlistSymbols((current) => [...current, result.symbol].sort())
+      setWatchlistInput('')
+      setWatchlistMessage(t('watchlist.added'))
+    } catch (requestError) {
+      setWatchlistMessage(requestError.message)
+    } finally {
+      setWatchlistBusy(false)
+    }
+  }
+
+  async function removeWatchlistSymbol(symbol) {
+    setWatchlistBusy(true)
+    setWatchlistMessage('')
+    try {
+      await apiRequest(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: 'DELETE' })
+      setWatchlistSymbols((current) => current.filter((item) => item !== symbol))
+      setWatchlistMessage(t('watchlist.removed'))
+    } catch (requestError) {
+      setWatchlistMessage(requestError.message)
+    } finally {
+      setWatchlistBusy(false)
+    }
+  }
+
+  async function saveNotificationSettings(event) {
+    event.preventDefault()
+    setNotificationBusy(true)
+    setNotificationMessage('')
+    try {
+      const body = { line_user_id: lineUserId.trim() }
+      if (lineChannelAccessToken.trim()) body.channel_access_token = lineChannelAccessToken.trim()
+      const result = await apiRequest('/api/notifications/settings', {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      })
+      setLineUserId(result.line_user_id)
+      setLineConfigured(result.configured)
+      setLineChannelAccessToken('')
+      setNotificationMessage(t('notifications.saved'))
+    } catch (requestError) {
+      setNotificationMessage(requestError.message)
+    } finally {
+      setNotificationBusy(false)
+    }
+  }
+
+  async function sendTestNotification() {
+    setNotificationBusy(true)
+    setNotificationMessage('')
+    try {
+      await apiRequest('/api/notifications/test', { method: 'POST' })
+      setNotificationMessage(t('notifications.testSent'))
+    } catch (requestError) {
+      setNotificationMessage(requestError.message)
+    } finally {
+      setNotificationBusy(false)
+    }
+  }
+
+  async function disconnectNotifications() {
+    setNotificationBusy(true)
+    setNotificationMessage('')
+    try {
+      await apiRequest('/api/notifications/settings', { method: 'DELETE' })
+      setLineUserId('')
+      setLineConfigured(false)
+      setLineChannelAccessToken('')
+      setNotificationMessage(t('notifications.disconnected'))
+    } catch (requestError) {
+      setNotificationMessage(requestError.message)
+    } finally {
+      setNotificationBusy(false)
+    }
+  }
+
+  async function submitConfig(e) {
+    e.preventDefault()
+    setConfigBusy(true)
+    setConfigMessage('')
+    try {
+      await apiRequest('/api/config', {
+        method: 'PUT',
+        body: JSON.stringify({ key: 'MAX_STOCKS', value: Number(maxStocks) }),
+      })
+      setConfigMessage(t('settings.saved'))
+    } catch (requestError) {
+      setConfigMessage(requestError.message)
+    } finally {
+      setConfigBusy(false)
+    }
+  }
 
   async function submitAddStock(e) {
     e.preventDefault()
@@ -117,6 +295,13 @@ function App() {
       })
 
     if (accessToken) {
+      apiRequest('/api/auth/me')
+        .then((profile) => {
+          if (active) setUserRole(profile.role)
+        })
+        .catch((requestError) => {
+          if (active) setError(requestError.message)
+        })
       apiRequest('/api/portfolio')
         .then((result) => {
           if (active) setPortfolio(result)
@@ -132,7 +317,23 @@ function App() {
     return () => {
       active = false
     }
-  }, [accessToken, selectedSymbol, setAuthOpen, setError, setPortfolio, setSelectedSymbol, setStocks])
+  }, [accessToken, selectedSymbol, setAuthOpen, setError, setPortfolio, setSelectedSymbol, setStocks, setUserRole])
+
+  useEffect(() => {
+    if (!accessToken) return undefined
+    let active = true
+    apiRequest('/api/analytics/signals')
+      .then((result) => {
+        if (active) {
+          setSignalAnalytics(result)
+          setSignalAnalyticsError('')
+        }
+      })
+      .catch((requestError) => {
+        if (active) setSignalAnalyticsError(requestError.message)
+      })
+    return () => { active = false }
+  }, [accessToken])
 
   useEffect(() => {
     if (!selectedSymbol) return undefined
@@ -235,6 +436,20 @@ function App() {
       tension: 0.18,
     }],
   }
+  const analyticsSummary = signalAnalytics?.summary
+  const analyticsChartData = {
+    labels: signalAnalytics?.equity_curve.map((point) => point.date) || [],
+    datasets: [{
+      data: signalAnalytics?.equity_curve.map((point) => point.pnl_thb) || [],
+      borderColor: '#55799a',
+      backgroundColor: 'rgba(85, 121, 154, 0.12)',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHitRadius: 8,
+      fill: true,
+      tension: 0.18,
+    }],
+  }
 
   return (
     <div className="app-shell">
@@ -246,7 +461,20 @@ function App() {
         <nav className="nav-list" aria-label={t('navigation.label')}>
           <a className="nav-item active" href="#overview">{t('navigation.overview')}</a>
           <a className="nav-item" href="#opportunities">{t('navigation.opportunities')}</a>
+          {accessToken && <a className="nav-item" href="#backtesting">{t('navigation.backtesting')}</a>}
           <a className="nav-item" href="#portfolio">{t('navigation.portfolio')}</a>
+          {accessToken && (
+            <>
+              <button className="nav-item nav-action" onClick={() => setWatchlistOpen(true)} type="button">{t('actions.myWatchlist')}</button>
+              <button className="nav-item nav-action" onClick={() => setAlertsOpen(true)} type="button">{t('actions.alertSettings')}</button>
+            </>
+          )}
+          {isAdmin && (
+            <>
+              <button className="nav-item nav-action" onClick={() => setConfigOpen(true)} type="button">{t('actions.settings')}</button>
+              <button className="nav-item nav-action" onClick={() => setManageStocksOpen(true)} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
+            </>
+          )}
         </nav>
           <div className="sidebar-status"><span className="status-dot" /><span>{t('market.watchlistHint')}</span><strong>{t('market.daily')}</strong></div>
         <div className="sidebar-bottom"><span className="eyebrow">{t('session.label')}</span><strong>{accessToken ? t('session.authenticated') : t('session.guest')}</strong></div>
@@ -263,7 +491,10 @@ function App() {
             </div>
             {accessToken ? (
               <>
-                <button className="button button-quiet" onClick={() => setManageStocksOpen(true)} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
+                {isAdmin && <>
+                  <button className="button button-quiet" onClick={() => { setConfigOpen(false); setManageStocksOpen(true) }} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
+                  <button className="button button-quiet" onClick={() => { setManageStocksOpen(false); setConfigOpen(true) }} type="button">{t('actions.settings')}</button>
+                </>}
                 <button className="button button-quiet" onClick={logout} type="button">{t('actions.signOut')}</button>
               </>
             ) : (
@@ -325,6 +556,60 @@ function App() {
           </table></div>
           {!stocks.length && <p className="table-empty">{t('opportunities.empty')}</p>}
         </section>
+
+        {accessToken && (
+          <section aria-labelledby="backtest-title" className="panel backtest-panel" id="backtesting">
+            <div className="panel-heading table-heading">
+              <div><p className="eyebrow">{t('backtesting.eyebrow')}</p><h2 id="backtest-title">{t('backtesting.title')}</h2></div>
+              <span className="table-count">{t('backtesting.signalCount', { count: analyticsSummary?.total_signals || 0 })}</span>
+            </div>
+            {signalAnalyticsError && <div className="notice notice-error" role="alert">{signalAnalyticsError}</div>}
+            <div className="metrics backtest-metrics" aria-label={t('backtesting.summary')}>
+              <div className="metric"><span>{t('backtesting.winRate')}</span><strong>{(analyticsSummary?.win_rate_pct || 0).toFixed(1)}%</strong><small>{t('backtesting.closedTrades', { count: analyticsSummary?.closed_trades || 0 })}</small></div>
+              <div className="metric"><span>{t('backtesting.totalPnl')}</span><strong>{money.format(analyticsSummary?.total_pnl_thb || 0)}</strong><small>{t('backtesting.realizedPnl', { value: money.format(analyticsSummary?.realized_pnl_thb || 0) })}</small></div>
+              <div className="metric"><span>{t('backtesting.unrealizedPnl')}</span><strong>{money.format(analyticsSummary?.unrealized_pnl_thb || 0)}</strong><small>{t('backtesting.openPositions', { count: analyticsSummary?.open_positions || 0 })}</small></div>
+              <div className="metric"><span>{t('backtesting.maxDrawdown')}</span><strong>{money.format(analyticsSummary?.max_drawdown_thb || 0)}</strong><small>{t('backtesting.oneShareMethod')}</small></div>
+            </div>
+            {signalAnalytics?.equity_curve.length ? (
+              <div className="backtest-chart">
+                <Line data={analyticsChartData} options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+                  scales: {
+                    x: { border: { display: false }, grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                    y: { border: { display: false }, grid: { color: '#e7ece8' }, ticks: { callback: (value) => money.format(value) } },
+                  },
+                }} />
+              </div>
+            ) : <p className="table-empty">{t('backtesting.empty')}</p>}
+            <div className="backtest-tables">
+              <div>
+                <div className="panel-heading table-heading"><h3>{t('backtesting.closedTradesTitle')}</h3></div>
+                <div className="table-scroll"><table>
+                  <thead><tr><th>{t('table.symbol')}</th><th>{t('backtesting.buyDate')}</th><th>{t('backtesting.sellDate')}</th><th>{t('backtesting.return')}</th><th>{t('backtesting.pnl')}</th></tr></thead>
+                  <tbody>{(signalAnalytics?.closed_trades || []).slice().reverse().map((trade) => (
+                    <tr key={`${trade.symbol}-${trade.buy_date}-${trade.sell_date}`}>
+                      <td><strong>{trade.symbol}</strong></td><td>{trade.buy_date}</td><td>{trade.sell_date}</td><td>{trade.return_pct.toFixed(2)}%</td><td>{money.format(trade.pnl_thb)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              </div>
+              <div>
+                <div className="panel-heading table-heading"><h3>{t('backtesting.openPositionsTitle')}</h3></div>
+                <div className="table-scroll"><table>
+                  <thead><tr><th>{t('table.symbol')}</th><th>{t('backtesting.buyPrice')}</th><th>{t('backtesting.currentPrice')}</th><th>{t('backtesting.pnl')}</th></tr></thead>
+                  <tbody>{(signalAnalytics?.open_trades || []).map((trade) => (
+                    <tr key={`${trade.symbol}-${trade.buy_date}`}>
+                      <td><strong>{trade.symbol}</strong></td><td>{money.format(trade.buy_price)}</td><td>{money.format(trade.current_price)}</td><td>{money.format(trade.pnl_thb)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+                {!signalAnalytics?.open_trades.length && <p className="table-empty">{t('backtesting.noOpenPositions')}</p>}
+              </div>
+            </div>
+          </section>
+        )}
       </main>
 
       {authOpen && (
@@ -369,6 +654,89 @@ function App() {
             </div>
             <div className="dialog-actions" style={{ marginTop: '16px' }}>
               <button className="button button-quiet" onClick={() => setManageStocksOpen(false)} type="button">{t('actions.close')}</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {configOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section aria-labelledby="config-title" aria-modal="true" className="auth-dialog config-dialog" role="dialog">
+            <p className="eyebrow">{t('settings.eyebrow')}</p>
+            <h2 id="config-title">{t('settings.title')}</h2>
+            <form className="trade-form config-form" onSubmit={submitConfig}>
+              <label htmlFor="max-stocks">{t('settings.maximumStocks')}
+                <input id="max-stocks" min="1" onChange={(event) => setMaxStocks(event.target.value)} required step="1" type="number" value={maxStocks} />
+              </label>
+              <p className="form-message" role="status">{configMessage}</p>
+              <div className="settings-actions">
+                <button className="button button-quiet" onClick={() => setConfigOpen(false)} type="button">{t('actions.close')}</button>
+                <button className="button button-primary" disabled={configBusy || !maxStocks} type="submit">{configBusy ? t('settings.saving') : t('settings.save')}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {watchlistOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section aria-labelledby="watchlist-title" aria-modal="true" className="auth-dialog feature-dialog" role="dialog">
+            <p className="eyebrow">{t('watchlist.eyebrow')}</p>
+            <h2 id="watchlist-title">{t('watchlist.title')}</h2>
+            <form className="feature-form watchlist-form" onSubmit={addWatchlistSymbol}>
+              <label htmlFor="watchlist-symbol">{t('watchlist.symbol')}
+                <input autoCapitalize="characters" id="watchlist-symbol" maxLength="20" onChange={(event) => setWatchlistInput(event.target.value)} required value={watchlistInput} />
+              </label>
+              <button className="button button-primary" disabled={watchlistBusy} type="submit">{t('watchlist.add')}</button>
+            </form>
+            <p className="form-message" role="status">{watchlistMessage}</p>
+            <div className="table-scroll feature-table">
+              <table>
+                <thead><tr><th>{t('table.symbol')}</th><th>{t('table.price')}</th><th>{t('table.signal')}</th><th>{t('watchlist.action')}</th></tr></thead>
+                <tbody>
+                  {watchlistSymbols.map((symbol) => {
+                    const stock = stocks.find((item) => item.symbol === symbol)
+                    return (
+                      <tr key={symbol}>
+                        <td><strong>{symbol}</strong></td>
+                        <td>{stock ? Number(stock.price).toFixed(2) : '-'}</td>
+                        <td>{stock ? t(`signals.${stock.recommendation}`, { defaultValue: stock.recommendation }) : '-'}</td>
+                        <td><button className="text-button" disabled={watchlistBusy} onClick={() => removeWatchlistSymbol(symbol)} type="button">{t('watchlist.remove')}</button></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {!watchlistSymbols.length && <p className="table-empty">{t('watchlist.empty')}</p>}
+            <div className="settings-actions">
+              <button className="button button-quiet" onClick={() => setWatchlistOpen(false)} type="button">{t('actions.close')}</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {alertsOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section aria-labelledby="alerts-title" aria-modal="true" className="auth-dialog feature-dialog" role="dialog">
+            <p className="eyebrow">{t('notifications.eyebrow')}</p>
+            <h2 id="alerts-title">{t('notifications.title')}</h2>
+            <form className="feature-form alert-form" onSubmit={saveNotificationSettings}>
+              <label htmlFor="line-user-id">{t('notifications.lineUserId')}
+                <input autoComplete="off" id="line-user-id" pattern="U[0-9a-fA-F]{32}" required value={lineUserId} onChange={(event) => setLineUserId(event.target.value)} />
+              </label>
+              <label htmlFor="line-access-token">{t('notifications.channelAccessToken')}
+                <input autoComplete="new-password" id="line-access-token" placeholder={lineConfigured ? t('notifications.tokenSaved') : ''} required={!lineConfigured} type="password" value={lineChannelAccessToken} onChange={(event) => setLineChannelAccessToken(event.target.value)} />
+              </label>
+              <div className="settings-actions">
+                {lineConfigured && <button className="text-button" disabled={notificationBusy} onClick={disconnectNotifications} type="button">{t('notifications.disconnect')}</button>}
+                <button className="button button-quiet" disabled={notificationBusy || !lineConfigured} onClick={sendTestNotification} type="button">{notificationBusy ? t('notifications.testing') : t('notifications.test')}</button>
+                <button className="button button-primary" disabled={notificationBusy} type="submit">{notificationBusy ? t('notifications.saving') : t('notifications.save')}</button>
+              </div>
+            </form>
+            <p className="form-message" role="status">{notificationMessage}</p>
+            <div className="settings-actions">
+              <button className="button button-quiet" onClick={() => setAlertsOpen(false)} type="button">{t('actions.close')}</button>
             </div>
           </section>
         </div>

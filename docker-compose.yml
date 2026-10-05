@@ -43,6 +43,9 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       DATA_PROVIDER: ${DATA_PROVIDER:-YAHOO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY to a value with at least 32 characters}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-}
+      ALPHA_VANTAGE_SYMBOL_SUFFIX: ${ALPHA_VANTAGE_SYMBOL_SUFFIX:-.BKK}
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -61,6 +64,8 @@ services:
       DATA_PROVIDER: ${DATA_PROVIDER:-YAHOO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY to a value with at least 32 characters}
       CELERY_TIMEZONE: Asia/Bangkok
+      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-}
+      ALPHA_VANTAGE_SYMBOL_SUFFIX: ${ALPHA_VANTAGE_SYMBOL_SUFFIX:-.BKK}
     depends_on:
       timescaledb:
         condition: service_healthy

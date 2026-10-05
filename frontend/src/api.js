@@ -7,6 +7,10 @@ const backendErrorKeys = new Map([
   ['Not enough cash for this purchase', 'errors.insufficientCash'],
   ['Not enough shares to sell', 'errors.insufficientShares'],
   ['Unsupported action', 'errors.unsupportedAction'],
+  ['Active stock not found.', 'errors.activeStockNotFound'],
+  ['Stock is already in your watchlist.', 'errors.watchlistDuplicate'],
+  ['Watchlist entry not found.', 'errors.watchlistEntryNotFound'],
+  ['Save LINE notification settings first.', 'errors.notificationSettingsMissing'],
 ])
 
 function getApiErrorMessage(payload, status) {

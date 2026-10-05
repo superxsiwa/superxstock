@@ -44,3 +44,14 @@ class StockResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ConfigUpdate(BaseModel):
+    key: str = Field(..., min_length=1, max_length=100)
+    value: int = Field(..., ge=1)
+
+class WatchlistCreate(BaseModel):
+    symbol: str = Field(..., min_length=2, max_length=20)
+
+class LineNotificationUpdate(BaseModel):
+    line_user_id: str = Field(..., pattern=r"^U[0-9a-fA-F]{32}$")
+    channel_access_token: Optional[str] = Field(None, min_length=1)

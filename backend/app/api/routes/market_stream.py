@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db, SessionLocal
 from app.core.security import decode_access_token
-from app.data import get_market_data_provider
+from app.data import get_current_price_with_fallback
 from app.models.all_models import User, Stock
 
 router = APIRouter(tags=["Market Stream"])
@@ -46,16 +46,10 @@ def fetch_current_prices() -> list[dict[str, float | str]]:
     finally:
         db.close()
 
-    try:
-        provider = get_market_data_provider()
-    except Exception:
-        logger.exception("Failed to initialize the market data provider")
-        return []
-
     prices = []
     for symbol in symbols:
         try:
-            price = provider.get_current_price(symbol)
+            price = get_current_price_with_fallback(symbol)
         except Exception:
             logger.exception("Failed to fetch current price for %s", symbol)
             continue

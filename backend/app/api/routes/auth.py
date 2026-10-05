@@ -1,4 +1,5 @@
 from datetime import timedelta
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -10,7 +11,8 @@ from app.core.security import (
     get_password_hash,
     verify_password,
     create_access_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    get_current_user,
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -30,7 +32,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    new_user = User(email=user.email, password_hash=hashed_password)
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    role = "admin" if admin_email and str(user.email).lower() == admin_email else "user"
+    new_user = User(email=user.email, password_hash=hashed_password, role=role)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -51,3 +55,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me")
+def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    return {"email": current_user.email, "role": current_user.role}

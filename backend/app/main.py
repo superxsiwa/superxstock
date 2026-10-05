@@ -1,30 +1,39 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
 # Import Database setup and Models
-from app.core.database import engine, Base, get_db
+from app.core.database import engine, Base, get_db, ensure_user_role_column
 from app.models import all_models
 
 
 # Create tables in the database (For MVP - usually done via Alembic)
 Base.metadata.create_all(bind=engine)
+ensure_user_role_column()
 
-# Seed default stocks if empty
+# Seed default stocks and configuration if missing
 from app.core.database import SessionLocal
-def seed_default_stocks():
+def seed_default_data():
     db = SessionLocal()
     try:
-        from app.models.all_models import Stock
+        from app.models.all_models import Stock, SystemConfig, User
+        if db.query(SystemConfig).filter(SystemConfig.key == "MAX_STOCKS").first() is None:
+            db.add(SystemConfig(key="MAX_STOCKS", value="50"))
+        admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+        if admin_email:
+            admin_user = db.query(User).filter(User.email == admin_email).first()
+            if admin_user is not None:
+                admin_user.role = "admin"
         if db.query(Stock).count() == 0:
             THAI_SYMBOLS = ["AOT.BK", "ADVANC.BK", "BDMS.BK", "CPALL.BK", "DELTA.BK", "KBANK.BK", "PTT.BK", "PTTEP.BK", "SCB.BK", "TRUE.BK"]
             for sym in THAI_SYMBOLS:
                 db.add(Stock(symbol=sym, name=sym, is_active=True))
-            db.commit()
+        db.commit()
     finally:
         db.close()
-seed_default_stocks()
+seed_default_data()
 
 app = FastAPI(
     title="SuperX Stock Screener & Paper Trading API",
@@ -33,11 +42,15 @@ app = FastAPI(
 )
 
 # Register API Routers
-from app.api.routes import frontend, auth, market_stream, stocks
+from app.api.routes import frontend, auth, market_stream, stocks, config, watchlist, notifications, analytics
 app.include_router(auth.router)
 app.include_router(frontend.router)
 app.include_router(market_stream.router)
 app.include_router(stocks.router)
+app.include_router(config.router)
+app.include_router(watchlist.router)
+app.include_router(notifications.router)
+app.include_router(analytics.router)
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
