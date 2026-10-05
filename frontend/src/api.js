@@ -37,7 +37,7 @@ export async function apiRequest(url, options = {}) {
   } else if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
-  if (token && !url.startsWith('/api/auth/')) {
+  if (token && !['/api/auth/token', '/api/auth/register'].includes(url)) {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
@@ -48,7 +48,7 @@ export async function apiRequest(url, options = {}) {
     throw new Error(i18n.t('errors.network'))
   }
   const payload = await response.json().catch(() => ({}))
-  if (response.status === 401 && !url.startsWith('/api/auth/')) {
+  if (response.status === 401 && !['/api/auth/token', '/api/auth/register'].includes(url)) {
     useAppStore.getState().logout()
     useAppStore.getState().setAuthOpen(true)
   }
