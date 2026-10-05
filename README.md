@@ -26,14 +26,18 @@ The LINE channel access token is only shown when entered and is never returned b
 
 ## Market data fallback
 
-Yahoo Finance remains the primary provider. When it raises an error or returns no data, the app tries Alpha Vantage. Create a free Alpha Vantage API key and add it to the repository-root `.env` file to enable fallback:
+Yahoo Finance remains the primary provider. When it raises an error or returns no data, the app uses EODHD if its token is configured; otherwise, it uses Twelve Data, then Alpha Vantage. EODHD lists Airports of Thailand as `AOT.BK` on its Thailand `BK` exchange. Add an EODHD API token to the repository-root `.env` file:
 
 ```dotenv
+EODHD_API_TOKEN=your_api_token
+TWELVE_DATA_API_KEY=your_api_key
 ALPHA_VANTAGE_API_KEY=your_api_key
 ALPHA_VANTAGE_SYMBOL_SUFFIX=.BKK
 ```
 
-The symbol suffix is configurable because exchange suffixes vary by data vendor. If Alpha Vantage does not recognize a Thai symbol with `.BKK`, set the suffix to the format supported by your account. Without the key, the app continues to use Yahoo and logs when fallback is unavailable. Check Alpha Vantage's current request quotas before relying on it for repeated scans.
+EODHD returns daily EOD history and a global live quote delayed by about 15-20 minutes. The quote is cached for 15 minutes because the market stream polls every 60 seconds. Its free plan has a 20 API-call daily limit and one year of history; each symbol costs one call, so a full fallback scan of 50 stocks can exceed the free quota if Yahoo is unavailable. Verify your account's AOT access and current limits in the [EODHD dashboard](https://eodhd.com/cp/dashboard). EODHD has a [free signup](https://eodhd.com/register).
+
+Twelve Data account plans control which symbols and data are accessible; its API reports AOT time-series access as Pro/Venture-only. A public demo key can find AOT but does not grant time-series access. Alpha Vantage's symbol suffix is configurable because exchange suffixes vary by vendor, though Thai symbols may not be available for every account. Without any fallback key, the app continues to use Yahoo and logs when fallback is unavailable.
 
 ## Administrator access
 
@@ -55,7 +59,7 @@ Then open:
 - http://localhost:8000/
 
 ## Run with Docker Compose
-Docker Compose automatically loads variables from the repository-root `.env` file. Set `DATA_PROVIDER=YAHOO` there to select the provider; YAHOO is currently the implemented provider. Compose defaults to YAHOO when the variable is omitted. It starts the API, Celery worker, and Celery Beat after TimescaleDB and Redis are healthy.
+Docker Compose automatically loads variables from the repository-root `.env` file. `DATA_PROVIDER` defaults to `YAHOO`; `YAHOO`, `EODHD`, `TWELVE_DATA`, and `ALPHA_VANTAGE` are supported primary providers. Optional fallback tokens are passed to the API, Celery worker, and Celery Beat. Compose starts these services after TimescaleDB and Redis are healthy.
 
 ```bash
 docker compose up --build
