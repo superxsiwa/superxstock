@@ -1,11 +1,12 @@
 from __future__ import annotations
+import math
 from typing import Dict, List
 from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi import HTTPException
 
-from .data import get_market_data
-from app.models.all_models import Portfolio, Position, Transaction
+from .data import get_current_price_with_fallback, get_market_data
+from app.models.all_models import Portfolio, Position, Stock, Transaction
 
 def ema(values: List[float], period: int) -> float:
     if not values:
@@ -126,7 +127,8 @@ def scan_market() -> List[Dict]:
 
 def get_symbol_chart(symbol: str) -> List[Dict]:
     market = get_market_data()
-    data = market.get(symbol)
+    normalized_symbol = symbol.strip().upper().removesuffix(".BK")
+    data = market.get(normalized_symbol)
     if not data:
         raise ValueError(f"Symbol {symbol} not found")
     return data["history"]
@@ -140,21 +142,42 @@ def get_portfolio_summary(db: Session, user_id: int) -> Dict:
         db.commit()
         db.refresh(portfolio)
 
-    market = get_market_data()
+    quote_symbols = {
+        stock.symbol.removesuffix(".BK").upper(): stock.symbol
+        for stock in db.query(Stock).filter(Stock.is_active.is_(True)).all()
+        if stock.symbol and stock.symbol.upper().endswith(".BK")
+    }
     positions = []
-    total_value = portfolio.current_cash
-    for pos in portfolio.positions:
+    total_market_value = 0.0
+    total_unrealized_pnl = 0.0
+    has_unpriced_positions = False
+    for pos in sorted(portfolio.positions, key=lambda position: position.symbol or ""):
         if pos.quantity <= 0:
             continue
-        # Default price if symbol is missing from current market data pull
-        price = market[pos.symbol]["current_price"] if pos.symbol in market else pos.average_cost
-        total_value += pos.quantity * price
+        symbol = (pos.symbol or "").strip().upper()
+        quote_symbol = quote_symbols.get(symbol.removesuffix(".BK"))
+        price = get_current_price_with_fallback(quote_symbol) if quote_symbol else None
+        if price is not None and (not math.isfinite(price) or price <= 0):
+            price = None
+
+        if price is None:
+            market_value = None
+            unrealized_pnl = None
+            has_unpriced_positions = True
+        else:
+            market_value = price * pos.quantity
+            unrealized_pnl = (price - pos.average_cost) * pos.quantity
+            total_market_value += market_value
+            total_unrealized_pnl += unrealized_pnl
+
         positions.append({
-            "symbol": pos.symbol,
+            "symbol": symbol,
             "quantity": pos.quantity,
             "avg_price": round(pos.average_cost, 2),
-            "price": round(price, 2),
-            "market_value": round(pos.quantity * price, 2),
+            "price": round(price, 2) if price is not None else None,
+            "market_value": round(market_value, 2) if market_value is not None else None,
+            "unrealized_pnl": round(unrealized_pnl, 2) if unrealized_pnl is not None else None,
+            "price_available": price is not None,
         })
 
     transactions = [
@@ -170,7 +193,14 @@ def get_portfolio_summary(db: Session, user_id: int) -> Dict:
 
     return {
         "cash": round(portfolio.current_cash, 2),
-        "total_value": round(total_value, 2),
+        "total_value": (
+            round(portfolio.current_cash + total_market_value, 2)
+            if not has_unpriced_positions
+            else None
+        ),
+        "unrealized_pnl": (
+            round(total_unrealized_pnl, 2) if not has_unpriced_positions else None
+        ),
         "positions": positions,
         "transactions": transactions,
     }

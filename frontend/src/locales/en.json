@@ -12,10 +12,10 @@
   },
   "navigation": {
     "label": "Main navigation",
-    "overview": "Overview",
-    "opportunities": "Opportunities",
-    "backtesting": "Signal accuracy",
-    "portfolio": "Portfolio"
+    "dashboard": "Dashboard",
+    "portfolio": "Portfolio",
+    "analytics": "Analytics",
+    "settings": "Settings"
   },
   "session": {
     "label": "Session",
@@ -35,7 +35,8 @@
     "close": "Close",
     "settings": "Settings",
     "myWatchlist": "My Watchlist",
-    "alertSettings": "Alert Settings"
+    "alertSettings": "Alert Settings",
+    "manageStocks": "Manage Stocks"
   },
   "settings": {
     "eyebrow": "System configuration",
@@ -44,6 +45,13 @@
     "save": "Save settings",
     "saving": "Saving...",
     "saved": "Configuration saved."
+  },
+  "settingsPage": {
+    "watchlistDescription": "Manage the symbols you want to follow.",
+    "notificationsDescription": "Configure LINE alerts and send a test notification.",
+    "configurationDescription": "Set system-wide stock scanning limits.",
+    "stocksDescription": "Add or remove symbols available to the scanner.",
+    "signInDescription": "Sign in to manage your watchlist and notification settings."
   },
   "watchlist": {
     "eyebrow": "Personal stocks",
@@ -54,7 +62,9 @@
     "action": "Action",
     "empty": "Your watchlist is empty.",
     "added": "Stock added to your watchlist.",
-    "removed": "Stock removed from your watchlist."
+    "removed": "Stock removed from your watchlist.",
+    "addSymbol": "Add {{symbol}} to watchlist",
+    "removeSymbol": "Remove {{symbol}} from watchlist"
   },
   "notifications": {
     "eyebrow": "LINE Messaging API",
@@ -108,6 +118,23 @@
     "availableCash": "AVAILABLE CASH",
     "paperBalance": "Paper trading balance",
     "accountBalance": "Account balance"
+  },
+  "portfolio": {
+    "eyebrow": "Portfolio valuation",
+    "title": "Open positions",
+    "quantity": "Quantity",
+    "averagePrice": "Average cost",
+    "currentPrice": "Current price",
+    "marketValue": "Market value",
+    "unrealizedPnl": "Unrealized P&L",
+    "priceUnavailable": "Price unavailable",
+    "empty": "No open positions.",
+    "transactionEyebrow": "Paper trading history",
+    "transactionsTitle": "Transactions",
+    "transactionAction": "Action",
+    "transactionPrice": "Price",
+    "transactionDate": "Date",
+    "noTransactions": "No transactions yet."
   },
   "chart": {
     "eyebrow": "Price history",
@@ -182,6 +209,9 @@
     "notificationSettingsMissing": "Save LINE notification settings first.",
     "symbolNotFound": "Symbol {{symbol}} was not found.",
     "invalidInput": "Check the information entered and try again.",
+    "marketDataUnavailable": "Current market prices are unavailable; portfolio value is incomplete.",
+    "marketStreamUnavailable": "Live market updates could not be connected.",
+    "marketStreamInvalidResponse": "Received invalid live market data.",
     "network": "Unable to connect to the server. Check your connection and try again.",
     "generic": "Something went wrong. Please try again."
   }

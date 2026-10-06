@@ -23,6 +23,14 @@ function App() {
     currency: 'THB',
     maximumFractionDigits: 2,
   })
+  const portfolioMoney = (value) => (
+    Number.isFinite(value) ? money.format(value) : t('portfolio.priceUnavailable')
+  )
+  const portfolioPnlClass = (value) => (
+    typeof value === 'number' && Number.isFinite(value)
+      ? value >= 0 ? 'pnl-positive' : 'pnl-negative'
+      : ''
+  )
   const accessToken = useAppStore((state) => state.accessToken)
   const userRole = useAppStore((state) => state.userRole)
   const stocks = useAppStore((state) => state.stocks)
@@ -32,6 +40,7 @@ function App() {
   const error = useAppStore((state) => state.error)
   const setStocks = useAppStore((state) => state.setStocks)
   const setPortfolio = useAppStore((state) => state.setPortfolio)
+  const updatePortfolioPrices = useAppStore((state) => state.updatePortfolioPrices)
   const setSelectedSymbol = useAppStore((state) => state.setSelectedSymbol)
   const setAuthOpen = useAppStore((state) => state.setAuthOpen)
   const setManageStocksOpen = useAppStore((state) => state.setManageStocksOpen)
@@ -40,6 +49,7 @@ function App() {
   const setUserRole = useAppStore((state) => state.setUserRole)
   const logout = useAppStore((state) => state.logout)
   const [candles, setCandles] = useState([])
+  const [activePage, setActivePage] = useState('dashboard')
   const [authMode, setAuthMode] = useState('login')
   const [authMessage, setAuthMessage] = useState('')
   const [tradeMessage, setTradeMessage] = useState('')
@@ -62,6 +72,7 @@ function App() {
   const [watchlistInput, setWatchlistInput] = useState('')
   const [watchlistMessage, setWatchlistMessage] = useState('')
   const [watchlistBusy, setWatchlistBusy] = useState(false)
+  const [watchlistLoadedToken, setWatchlistLoadedToken] = useState('')
   const [alertsOpen, setAlertsOpen] = useState(false)
   const [lineUserId, setLineUserId] = useState('')
   const [lineChannelAccessToken, setLineChannelAccessToken] = useState('')
@@ -110,20 +121,22 @@ function App() {
   }, [configOpen])
 
   useEffect(() => {
-    if (!watchlistOpen) return undefined
+    if (!accessToken) return undefined
+
     let active = true
     apiRequest('/api/watchlist')
       .then((result) => {
         if (active) {
           setWatchlistSymbols(result)
           setWatchlistMessage('')
+          setWatchlistLoadedToken(accessToken)
         }
       })
       .catch((requestError) => {
         if (active) setWatchlistMessage(requestError.message)
       })
     return () => { active = false }
-  }, [watchlistOpen])
+  }, [accessToken])
 
   useEffect(() => {
     if (!alertsOpen) return undefined
@@ -143,23 +156,28 @@ function App() {
     return () => { active = false }
   }, [alertsOpen])
 
-  async function addWatchlistSymbol(event) {
-    event.preventDefault()
+  async function addSymbolToWatchlist(symbol) {
     setWatchlistBusy(true)
     setWatchlistMessage('')
     try {
       const result = await apiRequest('/api/watchlist', {
         method: 'POST',
-        body: JSON.stringify({ symbol: watchlistInput.trim().toUpperCase() }),
+        body: JSON.stringify({ symbol: symbol.trim().toUpperCase() }),
       })
-      setWatchlistSymbols((current) => [...current, result.symbol].sort())
-      setWatchlistInput('')
+      setWatchlistSymbols((current) => [...new Set([...current, result.symbol])].sort())
       setWatchlistMessage(t('watchlist.added'))
+      return true
     } catch (requestError) {
       setWatchlistMessage(requestError.message)
+      return false
     } finally {
       setWatchlistBusy(false)
     }
+  }
+
+  async function addWatchlistSymbol(event) {
+    event.preventDefault()
+    if (await addSymbolToWatchlist(watchlistInput)) setWatchlistInput('')
   }
 
   async function removeWatchlistSymbol(symbol) {
@@ -294,30 +312,80 @@ function App() {
         if (active) setError(requestError.message)
       })
 
-    if (accessToken) {
-      apiRequest('/api/auth/me')
-        .then((profile) => {
-          if (active) setUserRole(profile.role)
-        })
-        .catch((requestError) => {
-          if (active) setError(requestError.message)
-        })
-      apiRequest('/api/portfolio')
-        .then((result) => {
-          if (active) setPortfolio(result)
-        })
-        .catch((requestError) => {
-          if (active) setError(requestError.message)
-        })
-    } else {
+    return () => {
+      active = false
+    }
+  }, [selectedSymbol, setError, setSelectedSymbol, setStocks])
+
+  useEffect(() => {
+    if (!accessToken) {
       setPortfolio(null)
       setAuthOpen(true)
+      return undefined
     }
+
+    let active = true
+    apiRequest('/api/auth/me')
+      .then((profile) => {
+        if (active) setUserRole(profile.role)
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message)
+      })
+    apiRequest('/api/portfolio')
+      .then((result) => {
+        if (active) setPortfolio(result)
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message)
+      })
 
     return () => {
       active = false
     }
-  }, [accessToken, selectedSymbol, setAuthOpen, setError, setPortfolio, setSelectedSymbol, setStocks, setUserRole])
+  }, [accessToken, setAuthOpen, setError, setPortfolio, setUserRole])
+
+  useEffect(() => {
+    if (!accessToken) return undefined
+
+    let active = true
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/market-stream`)
+    socket.addEventListener('open', () => {
+      if (active && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'auth', token: accessToken }))
+      }
+    })
+    socket.addEventListener('message', (event) => {
+      if (!active) return
+
+      let message
+      try {
+        message = JSON.parse(event.data)
+      } catch {
+        setError(t('errors.marketStreamInvalidResponse'))
+        return
+      }
+      if (!message || typeof message !== 'object' || Array.isArray(message)) {
+        setError(t('errors.marketStreamInvalidResponse'))
+        return
+      }
+
+      if (message.type === 'price_update' && Array.isArray(message.prices)) {
+        updatePortfolioPrices(message.prices)
+      } else if (message.type === 'error' && message.code === 'market_data_unavailable') {
+        setError(t('errors.marketDataUnavailable'))
+      }
+    })
+    socket.addEventListener('error', () => {
+      if (active) setError(t('errors.marketStreamUnavailable'))
+    })
+
+    return () => {
+      active = false
+      socket.close()
+    }
+  }, [accessToken, setError, t, updatePortfolioPrices])
 
   useEffect(() => {
     if (!accessToken) return undefined
@@ -421,6 +489,11 @@ function App() {
     }
   }
 
+  function navigateToPage(page) {
+    setActivePage(page)
+    window.scrollTo(0, 0)
+  }
+
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol)
   const buyCount = stocks.filter((stock) => stock.recommendation === 'BUY').length
   const chartData = {
@@ -454,35 +527,38 @@ function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#overview" aria-label={t('document.title')}>
+        <a
+          aria-label={t('document.title')}
+          className="brand"
+          href="#overview"
+          onClick={(event) => {
+            event.preventDefault()
+            navigateToPage('dashboard')
+          }}
+        >
           <span className="brand-mark">SX</span>
           <span><strong>SuperX</strong><small>{t('brand.tagline')}</small></span>
         </a>
         <nav className="nav-list" aria-label={t('navigation.label')}>
-          <a className="nav-item active" href="#overview">{t('navigation.overview')}</a>
-          <a className="nav-item" href="#opportunities">{t('navigation.opportunities')}</a>
-          {accessToken && <a className="nav-item" href="#backtesting">{t('navigation.backtesting')}</a>}
-          <a className="nav-item" href="#portfolio">{t('navigation.portfolio')}</a>
-          {accessToken && (
-            <>
-              <button className="nav-item nav-action" onClick={() => setWatchlistOpen(true)} type="button">{t('actions.myWatchlist')}</button>
-              <button className="nav-item nav-action" onClick={() => setAlertsOpen(true)} type="button">{t('actions.alertSettings')}</button>
-            </>
-          )}
-          {isAdmin && (
-            <>
-              <button className="nav-item nav-action" onClick={() => setConfigOpen(true)} type="button">{t('actions.settings')}</button>
-              <button className="nav-item nav-action" onClick={() => setManageStocksOpen(true)} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
-            </>
-          )}
+          {['dashboard', 'portfolio', 'analytics', 'settings'].map((page) => (
+            <button
+              aria-current={activePage === page ? 'page' : undefined}
+              className={`nav-item nav-action${activePage === page ? ' active' : ''}`}
+              key={page}
+              onClick={() => navigateToPage(page)}
+              type="button"
+            >
+              {t(`navigation.${page}`)}
+            </button>
+          ))}
         </nav>
-          <div className="sidebar-status"><span className="status-dot" /><span>{t('market.watchlistHint')}</span><strong>{t('market.daily')}</strong></div>
+        <div className="sidebar-status"><span className="status-dot" /><span>{t('market.watchlistHint')}</span><strong>{t('market.daily')}</strong></div>
         <div className="sidebar-bottom"><span className="eyebrow">{t('session.label')}</span><strong>{accessToken ? t('session.authenticated') : t('session.guest')}</strong></div>
       </aside>
 
       <main className="main-panel" id="overview">
         <header className="topbar">
-          <div><p className="eyebrow">{t('header.eyebrow')}</p><h1>{t('header.title')}</h1></div>
+          <div><p className="eyebrow">{t('header.eyebrow')}</p><h1>{t(`navigation.${activePage}`)}</h1></div>
           <div className="topbar-actions">
             <span className="market-date">{t('header.marketClose')}</span>
             <div aria-label={t('language.label')} className="language-switch" role="group">
@@ -491,25 +567,23 @@ function App() {
             </div>
             {accessToken ? (
               <>
-                {isAdmin && <>
-                  <button className="button button-quiet" onClick={() => { setConfigOpen(false); setManageStocksOpen(true) }} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
-                  <button className="button button-quiet" onClick={() => { setManageStocksOpen(false); setConfigOpen(true) }} type="button">{t('actions.settings')}</button>
-                </>}
                 <button className="button button-quiet" onClick={logout} type="button">{t('actions.signOut')}</button>
               </>
             ) : (
               <button className="button button-quiet" onClick={() => setAuthOpen(true)} type="button">{t('actions.signIn')}</button>
             )}
-            <button className="button button-primary" disabled={busy} onClick={refreshScan} type="button">{busy ? t('actions.refreshing') : t('actions.refresh')}</button>
+            {activePage === 'dashboard' && <button className="button button-primary" disabled={busy} onClick={refreshScan} type="button">{busy ? t('actions.refreshing') : t('actions.refresh')}</button>}
           </div>
         </header>
 
         {error && <div className="notice notice-error" role="alert">{error}</div>}
 
+        {activePage === 'dashboard' && (
+          <>
         <section className="metrics" aria-label={t('market.summary')}>
           <div className="metric"><span>{t('market.buySetups')}</span><strong>{buyCount}</strong><small>{t('market.buySetupsHint')}</small></div>
           <div className="metric"><span>{t('market.watchlist')}</span><strong>{stocks.length}</strong><small>{t('market.watchlistHint')}</small></div>
-          <div className="metric" id="portfolio"><span>{t('market.portfolioValue')}</span><strong>{portfolio ? money.format(portfolio.total_value) : '-'}</strong><small>{portfolio ? t('market.accountValue') : t('market.signInToView')}</small></div>
+          <div className="metric" id="portfolio"><span>{t('market.portfolioValue')}</span><strong>{portfolio ? portfolioMoney(portfolio.total_value) : '-'}</strong><small>{portfolio ? t('market.accountValue') : t('market.signInToView')}</small></div>
           <div className="metric"><span>{t('market.availableCash')}</span><strong>{portfolio ? money.format(portfolio.cash) : '-'}</strong><small>{portfolio ? t('market.paperBalance') : t('market.accountBalance')}</small></div>
         </section>
 
@@ -546,18 +620,132 @@ function App() {
 
         <section className="panel table-panel" id="opportunities">
           <div className="panel-heading table-heading"><div><p className="eyebrow">{t('opportunities.eyebrow')}</p><h2>{t('opportunities.title')}</h2></div><span className="table-count">{t('opportunities.count', { count: stocks.length })}</span></div>
+          {accessToken && <p className="form-message" role="status">{watchlistMessage}</p>}
           <div className="table-scroll"><table>
-            <thead><tr><th>{t('table.symbol')}</th><th>{t('table.price')}</th><th>{t('table.rsi')}</th><th>{t('table.macd')}</th><th>{t('table.ema50')}</th><th>{t('table.ema90')}</th><th>{t('table.volume')}</th><th>{t('table.zone')}</th><th>{t('table.score')}</th><th>{t('table.signal')}</th></tr></thead>
-            <tbody>{stocks.map((stock) => (
-              <tr className={stock.symbol === selectedSymbol ? 'selected-row' : ''} key={stock.symbol} onClick={() => setSelectedSymbol(stock.symbol)}>
-                <td><strong>{stock.symbol}</strong></td><td>{Number(stock.price).toFixed(2)}</td><td>{Number(stock.rsi).toFixed(1)}</td><td>{Number(stock.macd).toFixed(2)}</td><td>{Number(stock.ema50).toFixed(2)}</td><td>{Number(stock.ema90).toFixed(2)}</td><td>{Number(stock.volume_ratio).toFixed(2)}x</td><td>{t(`zones.${stock.action_zone}`, { defaultValue: stock.action_zone })}</td><td>{stock.score}</td><td><span className={`signal-tag ${stock.recommendation.toLowerCase()}`}>{t(`signals.${stock.recommendation}`, { defaultValue: stock.recommendation })}</span></td>
-              </tr>
-            ))}</tbody>
+            <thead><tr><th>{t('table.symbol')}</th><th>{t('table.price')}</th><th>{t('table.rsi')}</th><th>{t('table.macd')}</th><th>{t('table.ema50')}</th><th>{t('table.ema90')}</th><th>{t('table.volume')}</th><th>{t('table.zone')}</th><th>{t('table.score')}</th><th>{t('table.signal')}</th>{accessToken && <th>{t('watchlist.action')}</th>}</tr></thead>
+            <tbody>{stocks.map((stock) => {
+              const isWatched = watchlistSymbols.includes(stock.symbol)
+              const label = t(isWatched ? 'watchlist.removeSymbol' : 'watchlist.addSymbol', { symbol: stock.symbol })
+              return (
+                <tr className={stock.symbol === selectedSymbol ? 'selected-row' : ''} key={stock.symbol} onClick={() => setSelectedSymbol(stock.symbol)}>
+                  <td><strong>{stock.symbol}</strong></td><td>{Number(stock.price).toFixed(2)}</td><td>{Number(stock.rsi).toFixed(1)}</td><td>{Number(stock.macd).toFixed(2)}</td><td>{Number(stock.ema50).toFixed(2)}</td><td>{Number(stock.ema90).toFixed(2)}</td><td>{Number(stock.volume_ratio).toFixed(2)}x</td><td>{t(`zones.${stock.action_zone}`, { defaultValue: stock.action_zone })}</td><td>{stock.score}</td><td><span className={`signal-tag ${stock.recommendation.toLowerCase()}`}>{t(`signals.${stock.recommendation}`, { defaultValue: stock.recommendation })}</span></td>
+                  {accessToken && (
+                    <td>
+                      <button
+                        aria-label={label}
+                        className="watchlist-row-action"
+                        disabled={watchlistLoadedToken !== accessToken || watchlistBusy}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          if (isWatched) removeWatchlistSymbol(stock.symbol)
+                          else addSymbolToWatchlist(stock.symbol)
+                        }}
+                        title={label}
+                        type="button"
+                      >
+                        {isWatched ? t('watchlist.remove') : t('watchlist.add')}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}</tbody>
           </table></div>
           {!stocks.length && <p className="table-empty">{t('opportunities.empty')}</p>}
         </section>
+          </>
+        )}
 
-        {accessToken && (
+        {activePage === 'portfolio' && (accessToken ? (
+          <>
+            <section className="metrics portfolio-metrics" aria-label={t('portfolio.title')}>
+              <div className="metric"><span>{t('market.portfolioValue')}</span><strong>{portfolio ? portfolioMoney(portfolio.total_value) : '-'}</strong><small>{t('market.accountValue')}</small></div>
+              <div className="metric"><span>{t('market.availableCash')}</span><strong>{portfolio ? money.format(portfolio.cash) : '-'}</strong><small>{t('market.paperBalance')}</small></div>
+              <div className="metric"><span>{t('portfolio.unrealizedPnl')}</span><strong className={portfolioPnlClass(portfolio?.unrealized_pnl)}>{portfolio ? portfolioMoney(portfolio.unrealized_pnl) : '-'}</strong><small>{t('portfolio.title')}</small></div>
+            </section>
+            <section aria-labelledby="portfolio-positions-title" className="panel table-panel">
+              <div className="panel-heading table-heading">
+                <div>
+                  <p className="eyebrow">{t('portfolio.eyebrow')}</p>
+                  <h2 id="portfolio-positions-title">{t('portfolio.title')}</h2>
+                </div>
+              </div>
+              {portfolio?.positions.length ? (
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('table.symbol')}</th>
+                        <th>{t('portfolio.quantity')}</th>
+                        <th>{t('portfolio.averagePrice')}</th>
+                        <th>{t('portfolio.currentPrice')}</th>
+                        <th>{t('portfolio.marketValue')}</th>
+                        <th>{t('portfolio.unrealizedPnl')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {portfolio.positions.map((position) => (
+                        <tr key={position.symbol}>
+                          <td><strong>{position.symbol}</strong></td>
+                          <td>{position.quantity}</td>
+                          <td>{portfolioMoney(position.avg_price)}</td>
+                          <td>{portfolioMoney(position.price)}</td>
+                          <td>{portfolioMoney(position.market_value)}</td>
+                          <td className={portfolioPnlClass(position.unrealized_pnl)}>
+                            {portfolioMoney(position.unrealized_pnl)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="table-empty">{t('portfolio.empty')}</p>}
+            </section>
+            <section aria-labelledby="portfolio-transactions-title" className="panel table-panel">
+              <div className="panel-heading table-heading">
+                <div>
+                  <p className="eyebrow">{t('portfolio.transactionEyebrow')}</p>
+                  <h2 id="portfolio-transactions-title">{t('portfolio.transactionsTitle')}</h2>
+                </div>
+                <span className="table-count">{portfolio?.transactions.length || 0}</span>
+              </div>
+              {portfolio?.transactions.length ? (
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('table.symbol')}</th>
+                        <th>{t('portfolio.transactionAction')}</th>
+                        <th>{t('portfolio.quantity')}</th>
+                        <th>{t('portfolio.transactionPrice')}</th>
+                        <th>{t('portfolio.transactionDate')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {portfolio.transactions.map((transaction) => (
+                        <tr key={`${transaction.timestamp}-${transaction.symbol}-${transaction.action}`}>
+                          <td><strong>{transaction.symbol}</strong></td>
+                          <td>{t(transaction.action === 'BUY' ? 'trade.buy' : 'trade.sell')}</td>
+                          <td>{transaction.quantity}</td>
+                          <td>{portfolioMoney(transaction.price)}</td>
+                          <td>{new Date(transaction.timestamp).toLocaleString(i18n.language === 'th' ? 'th-TH' : 'en-US')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="table-empty">{t('portfolio.noTransactions')}</p>}
+            </section>
+          </>
+        ) : (
+          <section aria-labelledby="portfolio-access-title" className="panel access-panel">
+            <h2 id="portfolio-access-title">{t('navigation.portfolio')}</h2>
+            <p>{t('market.signInToView')}</p>
+            <button className="button button-primary" onClick={() => setAuthOpen(true)} type="button">{t('actions.signIn')}</button>
+          </section>
+        ))}
+
+        {activePage === 'analytics' && (accessToken ? (
           <section aria-labelledby="backtest-title" className="panel backtest-panel" id="backtesting">
             <div className="panel-heading table-heading">
               <div><p className="eyebrow">{t('backtesting.eyebrow')}</p><h2 id="backtest-title">{t('backtesting.title')}</h2></div>
@@ -608,6 +796,47 @@ function App() {
                 {!signalAnalytics?.open_trades.length && <p className="table-empty">{t('backtesting.noOpenPositions')}</p>}
               </div>
             </div>
+          </section>
+        ) : (
+          <section aria-labelledby="analytics-access-title" className="panel access-panel">
+            <h2 id="analytics-access-title">{t('backtesting.title')}</h2>
+            <p>{t('market.signInToView')}</p>
+            <button className="button button-primary" onClick={() => setAuthOpen(true)} type="button">{t('actions.signIn')}</button>
+          </section>
+        ))}
+
+        {activePage === 'settings' && (
+          <section aria-label={t('navigation.settings')} className="settings-grid">
+            {accessToken ? (
+              <>
+                <article className="panel settings-card">
+                  <div><p className="eyebrow">{t('watchlist.eyebrow')}</p><h2>{t('watchlist.title')}</h2><p>{t('settingsPage.watchlistDescription')}</p></div>
+                  <button className="button button-primary" onClick={() => setWatchlistOpen(true)} type="button">{t('actions.myWatchlist')}</button>
+                </article>
+                <article className="panel settings-card">
+                  <div><p className="eyebrow">{t('notifications.eyebrow')}</p><h2>{t('notifications.title')}</h2><p>{t('settingsPage.notificationsDescription')}</p></div>
+                  <button className="button button-primary" onClick={() => setAlertsOpen(true)} type="button">{t('actions.alertSettings')}</button>
+                </article>
+                {isAdmin && (
+                  <>
+                    <article className="panel settings-card">
+                      <div><p className="eyebrow">{t('settings.eyebrow')}</p><h2>{t('settings.title')}</h2><p>{t('settingsPage.configurationDescription')}</p></div>
+                      <button className="button button-primary" onClick={() => { setManageStocksOpen(false); setConfigOpen(true) }} type="button">{t('actions.settings')}</button>
+                    </article>
+                    <article className="panel settings-card">
+                      <div><p className="eyebrow">{t('settings.eyebrow')}</p><h2>{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</h2><p>{t('settingsPage.stocksDescription')}</p></div>
+                      <button className="button button-primary" onClick={() => { setConfigOpen(false); setManageStocksOpen(true) }} type="button">{t('actions.manageStocks', { defaultValue: 'Manage Stocks' })}</button>
+                    </article>
+                  </>
+                )}
+              </>
+            ) : (
+              <article className="panel access-panel">
+                <h2>{t('navigation.settings')}</h2>
+                <p>{t('settingsPage.signInDescription')}</p>
+                <button className="button button-primary" onClick={() => setAuthOpen(true)} type="button">{t('actions.signIn')}</button>
+              </article>
+            )}
           </section>
         )}
       </main>

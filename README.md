@@ -7,6 +7,7 @@ A technical-analysis stock screening and paper trading MVP designed for daily st
 - Personal watchlists with LINE signal alerts
 - Watchlist ranking and summary dashboard
 - Paper trading portfolio simulation
+- Current-price portfolio valuation and unrealized P/L for Thai-stock positions (THB)
 - Basic trading-view-style dashboard layout
 
 ## Persistent configuration
@@ -90,6 +91,8 @@ The production build is served by FastAPI at `/`; rebuild it with `cd frontend &
 - GET/PUT/DELETE /api/notifications/settings
 - POST /api/notifications/test
 - GET /api/analytics/signals
+
+`GET /api/portfolio` includes a current quote, market value, and unrealized P/L for each open Thai-stock position, plus aggregate unrealized P/L. Values are in THB. If a current quote is unavailable, that position is marked unavailable and aggregate valuation is omitted rather than substituted with cost basis. Multiple portfolios, FX conversion, journals, dividends, and AI indicator capture are outside this MVP slice.
 
 Signal analytics records actionable BUY/SELL signals from each daily scan. The backtest simulates one share per BUY, closes it on the next SELL signal for that symbol, marks open positions to the latest cached scan price, and reports realized/unrealized P/L and closed-trade win rate. History starts accumulating after deployment; it does not backfill earlier scans.
 

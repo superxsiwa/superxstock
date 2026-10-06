@@ -12,10 +12,10 @@
   },
   "navigation": {
     "label": "เมนูหลัก",
-    "overview": "ภาพรวม",
-    "opportunities": "โอกาสลงทุน",
-    "backtesting": "ความแม่นยำสัญญาณ",
-    "portfolio": "พอร์ตลงทุน"
+    "dashboard": "แดชบอร์ด",
+    "portfolio": "พอร์ตลงทุน",
+    "analytics": "วิเคราะห์ผล",
+    "settings": "ตั้งค่า"
   },
   "session": {
     "label": "สถานะบัญชี",
@@ -35,7 +35,8 @@
     "close": "ปิด",
     "settings": "ตั้งค่า",
     "myWatchlist": "หุ้นที่ติดตาม",
-    "alertSettings": "ตั้งค่าการแจ้งเตือน"
+    "alertSettings": "ตั้งค่าการแจ้งเตือน",
+    "manageStocks": "จัดการหุ้น"
   },
   "settings": {
     "eyebrow": "การตั้งค่าระบบ",
@@ -44,6 +45,13 @@
     "save": "บันทึกการตั้งค่า",
     "saving": "กำลังบันทึก...",
     "saved": "บันทึกการตั้งค่าแล้ว"
+  },
+  "settingsPage": {
+    "watchlistDescription": "จัดการรายชื่อหุ้นที่ต้องการติดตาม",
+    "notificationsDescription": "ตั้งค่าการแจ้งเตือน LINE และส่งข้อความทดสอบ",
+    "configurationDescription": "กำหนดจำนวนหุ้นสูงสุดสำหรับการสแกน",
+    "stocksDescription": "เพิ่มหรือนำหุ้นออกจากรายการที่ระบบสแกน",
+    "signInDescription": "เข้าสู่ระบบเพื่อจัดการหุ้นที่ติดตามและการแจ้งเตือน"
   },
   "watchlist": {
     "eyebrow": "หุ้นที่ติดตามส่วนตัว",
@@ -54,7 +62,9 @@
     "action": "จัดการ",
     "empty": "ยังไม่มีหุ้นในรายการติดตาม",
     "added": "เพิ่มหุ้นในรายการติดตามแล้ว",
-    "removed": "นำหุ้นออกจากรายการติดตามแล้ว"
+    "removed": "นำหุ้นออกจากรายการติดตามแล้ว",
+    "addSymbol": "เพิ่ม {{symbol}} ในรายการติดตาม",
+    "removeSymbol": "นำ {{symbol}} ออกจากรายการติดตาม"
   },
   "notifications": {
     "eyebrow": "LINE Messaging API",
@@ -108,6 +118,23 @@
     "availableCash": "เงินสดคงเหลือ",
     "paperBalance": "ยอดเงินสำหรับทดลองซื้อขาย",
     "accountBalance": "ยอดเงินในบัญชี"
+  },
+  "portfolio": {
+    "eyebrow": "มูลค่าพอร์ต",
+    "title": "หุ้นที่ถืออยู่",
+    "quantity": "จำนวน",
+    "averagePrice": "ต้นทุนเฉลี่ย",
+    "currentPrice": "ราคาปัจจุบัน",
+    "marketValue": "มูลค่าตลาด",
+    "unrealizedPnl": "กำไร/ขาดทุนที่ยังไม่รับรู้",
+    "priceUnavailable": "ไม่มีราคาปัจจุบัน",
+    "empty": "ยังไม่มีหุ้นที่ถืออยู่",
+    "transactionEyebrow": "ประวัติทดลองซื้อขาย",
+    "transactionsTitle": "รายการซื้อขาย",
+    "transactionAction": "คำสั่ง",
+    "transactionPrice": "ราคา",
+    "transactionDate": "วันที่",
+    "noTransactions": "ยังไม่มีรายการซื้อขาย"
   },
   "chart": {
     "eyebrow": "ประวัติราคา",
@@ -182,6 +209,9 @@
     "notificationSettingsMissing": "โปรดบันทึกการตั้งค่า LINE ก่อน",
     "symbolNotFound": "ไม่พบหุ้น {{symbol}}",
     "invalidInput": "โปรดตรวจสอบข้อมูลที่กรอกแล้วลองอีกครั้ง",
+    "marketDataUnavailable": "ไม่มีราคาตลาดปัจจุบัน จึงคำนวณมูลค่าพอร์ตได้ไม่ครบ",
+    "marketStreamUnavailable": "เชื่อมต่อข้อมูลราคาตลาดแบบสดไม่ได้",
+    "marketStreamInvalidResponse": "ได้รับข้อมูลราคาตลาดแบบสดที่ไม่ถูกต้อง",
     "network": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
     "generic": "เกิดข้อผิดพลาด โปรดลองอีกครั้ง"
   }
